@@ -1,5 +1,5 @@
 pipeline {
-  agent any
+  agent { label 'ec2-agent' } 
 
   environment {
     DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds') // Jenkins credentials ID
@@ -15,14 +15,14 @@ pipeline {
 
     stage('Build Docker Image') {
       steps {
-        bat 'docker build -t myimage .'
+        sh 'docker build -t $IMAGE_NAME .'
       }
     }
 
     stage('Push to DockerHub') {
       steps {
         withDockerRegistry([credentialsId: "$DOCKERHUB_CREDENTIALS", url: '']) {
-          bat 'docker push myimage'
+          sh 'docker push $IMAGE_NAME'
         }
       }
     }
