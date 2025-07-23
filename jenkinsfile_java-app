@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+
+    environment {
+        SONAR_HOST_URL = 'http://<your-sonarqube-ip>:9000'
+        SONAR_TOKEN = credentials('sonar-token-id') // stored in Jenkins credentials
+        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-credentials-id')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/your-user/your-java-repo.git'
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                sh 'mvn clean install'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('MySonarQubeServer') {
+                    sh "mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN"
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t my-java-app:latest .'
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials-id') {
+                        sh 'docker tag my-java-app:latest mydockerhubuser/my-java-app:latest'
+                        sh 'docker push mydockerhubuser/my-java-app:latest'
+                    }
+                }
+            }
+        }
+    }
+}
